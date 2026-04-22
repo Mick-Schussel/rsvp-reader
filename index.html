@@ -437,12 +437,15 @@ Output rules — follow these exactly, no exceptions:
     extractFill.style.width = '20%';
 
     try {
-      // Convert PDF to base64
+      // Convert PDF to base64 (chunk-safe method)
       const arrayBuffer = await file.arrayBuffer();
       const bytes = new Uint8Array(arrayBuffer);
-      let binary = '';
-      for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
-      const base64 = btoa(binary);
+      let base64 = '';
+      const chunkSize = 8192;
+      for (let i = 0; i < bytes.length; i += chunkSize) {
+        base64 += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+      }
+      base64 = btoa(base64);
 
       extractFill.style.width = '40%';
       extractLabel.textContent = 'Claude is reading the paper…';
@@ -453,10 +456,11 @@ Output rules — follow these exactly, no exceptions:
           'Content-Type':         'application/json',
           'x-api-key':            apiKey,
           'anthropic-version':    '2023-06-01',
+          'anthropic-beta':       'pdfs-2024-09-25',
           'anthropic-dangerous-direct-browser-calls': 'true'
         },
         body: JSON.stringify({
-          model:      'claude-opus-4-5',
+          model:      'claude-sonnet-4-5',
           max_tokens: 8000,
           messages: [{
             role: 'user',
